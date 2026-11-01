@@ -4,6 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>دفتر الدكانة</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#16302b">
+<link rel="apple-touch-icon" href="icon-192.png">
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#eef2f0;--card:#fff;--ink:#16302b;--mute:#667a75;--line:#d6dfdc;--in:#0f7a55;--out:#b3402e;--debt:#a16a00;--accent:#16302b;--accent-ink:#fff;
@@ -42,6 +45,10 @@ h2{font-size:17px;margin:18px 0 8px}
 .item button.ok{color:var(--in);border-color:var(--in)}
 .empty{color:var(--mute);padding:14px 0}
 .pi{width:84px;margin:0;padding:7px}
+.tools{display:flex;gap:8px;flex-wrap:wrap;margin-top:28px}
+.tools button,.tools label{flex:1;min-width:130px;padding:10px;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:10px;font:inherit;font-size:14px;cursor:pointer;text-align:center}
+#report{display:none}
+@media print{main{display:none!important}#report{display:block;color:#000;font-size:14px}body{background:#fff}#report table{width:100%;border-collapse:collapse;margin:8px 0 16px}#report th,#report td{border:1px solid #999;padding:5px 8px;text-align:right}#report h1,#report h2{color:#000}}
 .item .a{min-width:36px;text-align:center}
 </style>
 </head>
@@ -101,7 +108,14 @@ h2{font-size:17px;margin:18px 0 8px}
 <h2>الزبائن</h2>
 <div id="clist"></div>
 </section>
+<div class="tools">
+  <button id="pr">🖨️ تقرير PDF</button>
+  <button id="wa">💬 ملخص واتساب</button>
+  <button id="bk">⬇️ نسخة احتياطية</button>
+  <label>⬆️ استعادة<input type="file" id="rs" accept=".json,application/json" hidden></label>
+</div>
 </main>
+<div id="report"></div>
 <script>
 var KEY="dukkana-v1",items=[],type="sale",period="day";
 var NAMES={sale:"بيع",buy:"شراء بضاعة",exp:"مصروف",debt:"دين"};
@@ -217,6 +231,45 @@ document.addEventListener("click",function(e){
   if(d.ix){inv=inv.filter(function(x){return x.id!=d.ix});saveI();renderInv()}
   if(d.pay!==undefined)pay(+d.pay);
 });
+var PN={day:"اليوم",month:"هذا الشهر",all:"كل الفترات"};
+function calc(){var s=0,c=0,dt=0,list=items.filter(function(i){return inPeriod(i.date)});
+  list.forEach(function(i){if(i.type==="sale")s+=i.amount;else if(i.type==="buy"||i.type==="exp")c+=i.amount});
+  items.forEach(function(i){if(i.type==="debt")dt+=i.amount});
+  return{s:s,c:c,p:s-c,dt:dt,list:list}}
+function T(h){return "<table>"+h+"</table>"}
+function printReport(){
+  var k=calc();
+  var rows=k.list.filter(function(i){return i.type!=="debt"}).sort(function(a,b){return a.id-b.id}).map(function(i){
+    return "<tr><td>"+new Date(i.date).toLocaleDateString("ar")+"</td><td>"+NAMES[i.type]+"</td><td>"+esc(i.note||"")+"</td><td>"+fmt(i.amount)+"</td></tr>"}).join("");
+  var dr=cl.map(function(c){return "<tr><td>"+esc(c.n)+"</td><td>"+fmt(c.t)+"</td></tr>"}).join("");
+  var ir=inv.map(function(x){return "<tr><td>"+esc(x.name)+"</td><td>"+fmt(x.qty)+"</td></tr>"}).join("");
+  document.getElementById("report").innerHTML="<h1>دفتر الدكانة</h1><p>تقرير: "+PN[period]+" — "+new Date().toLocaleDateString("ar")+"</p>"+
+    T("<tr><th>المبيعات</th><th>المصاريف</th><th>الربح</th><th>ديون الزبائن</th></tr><tr><td>"+fmt(k.s)+"</td><td>"+fmt(k.c)+"</td><td>"+fmt(k.p)+"</td><td>"+fmt(k.dt)+"</td></tr>")+
+    "<h2>الحركات</h2>"+T("<tr><th>التاريخ</th><th>النوع</th><th>ملاحظة</th><th>المبلغ</th></tr>"+(rows||"<tr><td colspan=4>لا يوجد</td></tr>"))+
+    (dr?"<h2>ديون الزبائن</h2>"+T("<tr><th>الزبون</th><th>المبلغ</th></tr>"+dr):"")+
+    (ir?"<h2>المخزون</h2>"+T("<tr><th>الصنف</th><th>الكمية</th></tr>"+ir):"");
+  window.print();
+}
+function backup(){
+  var data=JSON.stringify({v:1,items:items,inv:inv}),name="dukkana-backup-"+new Date().toISOString().slice(0,10)+".json",f=null;
+  try{f=new File([data],name,{type:"application/json"})}catch(e){}
+  if(f&&navigator.canShare&&navigator.canShare({files:[f]})){navigator.share({files:[f],title:"نسخة احتياطية"}).catch(function(){});return}
+  var a=document.createElement("a");a.href=URL.createObjectURL(new Blob([data],{type:"application/json"}));a.download=name;
+  document.body.appendChild(a);a.click();a.remove();
+}
+document.getElementById("pr").onclick=function(){printReport()};
+document.getElementById("bk").onclick=backup;
+document.getElementById("wa").onclick=function(){var k=calc();
+  var t="دفتر الدكانة - "+PN[period]+"\nالمبيعات: "+fmt(k.s)+"\nالمصاريف: "+fmt(k.c)+"\nالربح: "+fmt(k.p)+"\nديون الزبائن: "+fmt(k.dt);
+  window.open("https://wa.me/?text="+encodeURIComponent(t),"_blank")};
+document.getElementById("rs").onchange=function(){
+  var f=this.files[0],self=this;if(!f)return;var r=new FileReader();
+  r.onload=function(){try{var d=JSON.parse(r.result);if(!Array.isArray(d.items))throw 0;
+    if(!confirm("سيتم استبدال البيانات الحالية بالنسخة. متابعة؟"))return;
+    items=d.items;inv=Array.isArray(d.inv)?d.inv:[];save();saveI();render()}catch(e){alert("الملف غير صالح")}};
+  r.readAsText(f);self.value="";
+};
+if("serviceWorker" in navigator)window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){})});
 var _r=render;
 render=function(){_r();renderInv();renderCus()};
 render();
