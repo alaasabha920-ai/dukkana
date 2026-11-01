@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>دفتر الدكانة</title>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#eef2f0;--card:#fff;--ink:#16302b;--mute:#667a75;--line:#d6dfdc;--in:#0f7a55;--out:#b3402e;--debt:#a16a00;--accent:#16302b;--accent-ink:#fff;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1a17;--card:#17262a;--ink:#e6f0ec;--mute:#93a8a2;--line:#2a3d3a;--in:#4fcf9f;--out:#f08a76;--debt:#e4b24d;--accent:#e6f0ec;--accent-ink:#0f1a17}}
+:root[data-theme="dark"]{--bg:#0f1a17;--card:#17262a;--ink:#e6f0ec;--mute:#93a8a2;--line:#2a3d3a;--in:#4fcf9f;--out:#f08a76;--debt:#e4b24d;--accent:#e6f0ec;--accent-ink:#0f1a17}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Tajawal",system-ui,sans-serif;font-size:16px;line-height:1.5}
+main{max-width:560px;margin:0 auto;padding:18px 16px 40px}
+h1{font-size:24px;font-weight:800;margin:4px 0 14px}
+.tabs{display:flex;gap:6px;margin-bottom:14px}
+.tabs button{flex:1;padding:9px;border:1px solid var(--line);background:transparent;color:var(--mute);border-radius:10px;font:inherit;font-weight:500;cursor:pointer}
+.tabs button.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.profit{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin-bottom:10px}
+.profit small{color:var(--mute);display:block}
+.profit b{font-size:38px;font-weight:800;line-height:1.2}
+.row3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:18px}
+.row3 div{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px}
+.row3 small{color:var(--mute);display:block;font-size:13px}
+.row3 b{font-size:18px}
+.pos{color:var(--in)}.neg{color:var(--out)}.dbt{color:var(--debt)}
+form{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:20px}
+.types{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:10px}
+.types button{padding:9px 2px;border:1.5px solid var(--line);background:transparent;color:var(--ink);border-radius:9px;font:inherit;font-size:14px;cursor:pointer}
+.types button.on{border-color:var(--ink);background:var(--bg);font-weight:700}
+input{width:100%;padding:11px;border:1px solid var(--line);border-radius:9px;background:var(--bg);color:var(--ink);font:inherit;margin-bottom:8px}
+input:focus,button:focus-visible{outline:2px solid var(--in);outline-offset:1px}
+.add{width:100%;padding:12px;border:0;border-radius:10px;background:var(--accent);color:var(--accent-ink);font:inherit;font-weight:700;cursor:pointer}
+h2{font-size:17px;margin:18px 0 8px}
+.item{display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--line)}
+.item .t{flex:1;min-width:0}
+.item .t span{display:block;color:var(--mute);font-size:13px}
+.item .a{font-weight:700;white-space:nowrap}
+.item button{border:1px solid var(--line);background:transparent;color:var(--mute);border-radius:8px;padding:5px 9px;font:inherit;font-size:13px;cursor:pointer}
+.item button.ok{color:var(--in);border-color:var(--in)}
+.empty{color:var(--mute);padding:14px 0}
+.pi{width:84px;margin:0;padding:7px}
+.item .a{min-width:36px;text-align:center}
+</style>
+</head>
+<body>
+<main>
+<h1>🏪 دفتر الدكانة</h1>
+<div class="tabs" id="views">
+  <button data-v="acc" class="on">الحسابات</button>
+  <button data-v="inv">المخزون</button>
+  <button data-v="cus">الزبائن</button>
+</div>
+<section id="v-acc">
+<div class="tabs" id="tabs">
+  <button data-p="day" class="on">اليوم</button>
+  <button data-p="month">هذا الشهر</button>
+  <button data-p="all">الكل</button>
+</div>
+<div class="profit"><small>الربح</small><b id="profit">0</b></div>
+<div class="row3">
+  <div><small>المبيعات</small><b class="pos" id="sales">0</b></div>
+  <div><small>المصاريف</small><b class="neg" id="costs">0</b></div>
+  <div><small>ديون الزبائن</small><b class="dbt" id="debts">0</b></div>
+</div>
+
+<form id="f">
+  <div class="types" id="types">
+    <button type="button" data-t="sale" class="on">بيع</button>
+    <button type="button" data-t="buy">شراء بضاعة</button>
+    <button type="button" data-t="exp">مصروف</button>
+    <button type="button" data-t="debt">دين زبون</button>
+  </div>
+  <input id="amount" type="number" inputmode="decimal" min="0" step="any" placeholder="المبلغ" required>
+  <input id="note" type="text" placeholder="ملاحظة (مثلاً: سكر، أو اسم الزبون)">
+  <button class="add" type="submit">إضافة</button>
+</form>
+
+<h2 id="dh" hidden>ديون لم تُسدَّد</h2>
+<div id="dlist"></div>
+<h2>الحركات</h2>
+<div id="list"></div>
+</section>
+<section id="v-inv" hidden>
+<form id="fi">
+  <input id="iname" type="text" placeholder="اسم الصنف (مثلاً: سكر)" required>
+  <input id="iqty" type="number" inputmode="decimal" min="0" step="any" placeholder="الكمية" required>
+  <button class="add" type="submit">إضافة صنف</button>
+</form>
+<h2>الأصناف</h2>
+<div id="ilist"></div>
+</section>
+<section id="v-cus" hidden>
+<form id="fc">
+  <input id="cname" type="text" placeholder="اسم الزبون" required>
+  <input id="camt" type="number" inputmode="decimal" min="0" step="any" placeholder="مبلغ الدين" required>
+  <button class="add" type="submit">تسجيل دين</button>
+</form>
+<h2>الزبائن</h2>
+<div id="clist"></div>
+</section>
+</main>
+<script>
+var KEY="dukkana-v1",items=[],type="sale",period="day";
+var NAMES={sale:"بيع",buy:"شراء بضاعة",exp:"مصروف",debt:"دين"};
+try{items=JSON.parse(localStorage.getItem(KEY)||"[]")}catch(e){items=[]}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(items))}catch(e){}}
+function fmt(n){return Number(n).toLocaleString("en-US",{maximumFractionDigits:2})}
+function inPeriod(d){
+  if(period==="all")return true;
+  var x=new Date(d),n=new Date();
+  if(x.getFullYear()!==n.getFullYear()||x.getMonth()!==n.getMonth())return false;
+  return period==="month"||x.getDate()===n.getDate();
+}
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+function row(it,settle){
+  var cls=it.type==="sale"?"pos":it.type==="debt"?"dbt":"neg";
+  var sign=it.type==="sale"?"+":it.type==="debt"?"":"−";
+  var d=new Date(it.date).toLocaleDateString("ar",{day:"numeric",month:"short"});
+  return '<div class="item"><div class="t">'+esc(it.note||NAMES[it.type])+'<span>'+NAMES[it.type]+' • '+d+'</span></div>'+
+    '<div class="a '+cls+'">'+sign+fmt(it.amount)+'</div>'+
+    (settle?'<button class="ok" data-s="'+it.id+'">تم التسديد</button>':'')+
+    '<button data-x="'+it.id+'" aria-label="حذف">حذف</button></div>';
+}
+function render(){
+  var s=0,c=0,list=items.filter(function(i){return inPeriod(i.date)});
+  list.forEach(function(i){if(i.type==="sale")s+=i.amount;else if(i.type==="buy"||i.type==="exp")c+=i.amount});
+  var p=s-c,dt=0,dl=items.filter(function(i){return i.type==="debt"});
+  dl.forEach(function(i){dt+=i.amount});
+  var pe=document.getElementById("profit");
+  pe.textContent=fmt(p);pe.className=p<0?"neg":"";
+  document.getElementById("sales").textContent=fmt(s);
+  document.getElementById("costs").textContent=fmt(c);
+  document.getElementById("debts").textContent=fmt(dt);
+  document.getElementById("dh").hidden=!dl.length;
+  document.getElementById("dlist").innerHTML=dl.map(function(i){return row(i,true)}).join("");
+  var shown=list.filter(function(i){return i.type!=="debt"}).sort(function(a,b){return b.id-a.id});
+  document.getElementById("list").innerHTML=shown.length?shown.map(function(i){return row(i,false)}).join(""):'<div class="empty">ما في حركات بعد. سجّل أول عملية من فوق.</div>';
+}
+document.getElementById("types").onclick=function(e){
+  var b=e.target.closest("button");if(!b)return;type=b.dataset.t;
+  [].forEach.call(this.children,function(x){x.classList.toggle("on",x===b)});
+};
+document.getElementById("tabs").onclick=function(e){
+  var b=e.target.closest("button");if(!b)return;period=b.dataset.p;
+  [].forEach.call(this.children,function(x){x.classList.toggle("on",x===b)});render();
+};
+document.getElementById("f").onsubmit=function(e){
+  e.preventDefault();
+  var a=parseFloat(document.getElementById("amount").value);
+  if(!(a>0))return;
+  items.push({id:Date.now(),type:type,amount:a,note:document.getElementById("note").value.trim(),date:new Date().toISOString()});
+  save();this.reset();render();
+};
+document.body.onclick=function(e){
+  var b=e.target.closest("button");if(!b)return;
+  if(b.dataset.x){items=items.filter(function(i){return i.id!=b.dataset.x});save();render()}
+  if(b.dataset.s){items.forEach(function(i){if(i.id==b.dataset.s){i.type="sale";i.date=new Date().toISOString()}});save();render()}
+};
+var IKEY="dukkana-inv",inv=[],cl=[];
+try{inv=JSON.parse(localStorage.getItem(IKEY)||"[]")}catch(e){inv=[]}
+function saveI(){try{localStorage.setItem(IKEY,JSON.stringify(inv))}catch(e){}}
+function renderInv(){
+  document.getElementById("ilist").innerHTML=inv.length?inv.map(function(x){
+    var low=x.qty<=2;
+    return '<div class="item"><div class="t">'+esc(x.name)+(low?'<span class="neg">كمية قليلة</span>':'')+'</div>'+
+      '<button data-iq="'+x.id+':-1">−</button><div class="a '+(low?'neg':'')+'">'+fmt(x.qty)+'</div><button data-iq="'+x.id+':1">+</button>'+
+      '<button data-ix="'+x.id+'">حذف</button></div>';
+  }).join(""):'<div class="empty">ما في أصناف. أضف أول صنف من فوق.</div>';
+}
+function renderCus(){
+  var m={},o=[];
+  items.forEach(function(i){if(i.type==="debt"){var k=i.note||"بدون اسم";if(m[k]===undefined){m[k]=0;o.push(k)}m[k]+=i.amount}});
+  cl=o.map(function(k){return{n:k,t:m[k]}}).sort(function(p,q){return q.t-p.t});
+  document.getElementById("clist").innerHTML=cl.length?cl.map(function(c,i){
+    return '<div class="item"><div class="t">'+esc(c.n)+'<span class="dbt">عليه '+fmt(c.t)+'</span></div>'+
+      '<input class="pi" id="p'+i+'" type="number" inputmode="decimal" min="0" step="any" placeholder="الكل">'+
+      '<button class="ok" data-pay="'+i+'">سدّد</button></div>';
+  }).join(""):'<div class="empty">ما في ديون. كل الزبائن مسدّدين.</div>';
+}
+function pay(i){
+  var c=cl[i],a=parseFloat(document.getElementById("p"+i).value);
+  if(!(a>0)||a>c.t)a=c.t;
+  var r=a;
+  items.filter(function(x){return x.type==="debt"&&(x.note||"بدون اسم")===c.n}).sort(function(p,q){return p.id-q.id}).forEach(function(x){
+    if(r<=0)return;
+    if(x.amount<=r){r-=x.amount;x.amount=0}else{x.amount-=r;r=0}
+  });
+  items=items.filter(function(x){return !(x.type==="debt"&&x.amount<0.005)});
+  items.push({id:Date.now(),type:"sale",amount:a,note:"تسديد: "+c.n,date:new Date().toISOString()});
+  save();render();
+}
+document.getElementById("views").onclick=function(e){
+  var b=e.target.closest("button");if(!b)return;
+  [].forEach.call(this.children,function(x){x.classList.toggle("on",x===b);document.getElementById("v-"+x.dataset.v).hidden=x!==b});
+};
+document.getElementById("fi").onsubmit=function(e){
+  e.preventDefault();
+  var q=parseFloat(document.getElementById("iqty").value);
+  if(!(q>=0))return;
+  inv.push({id:Date.now(),name:document.getElementById("iname").value.trim(),qty:q});
+  saveI();this.reset();renderInv();
+};
+document.getElementById("fc").onsubmit=function(e){
+  e.preventDefault();
+  var a=parseFloat(document.getElementById("camt").value);
+  if(!(a>0))return;
+  items.push({id:Date.now(),type:"debt",amount:a,note:document.getElementById("cname").value.trim(),date:new Date().toISOString()});
+  save();this.reset();render();
+};
+document.addEventListener("click",function(e){
+  var b=e.target.closest("button");if(!b)return;
+  var d=b.dataset;
+  if(d.iq){var p=d.iq.split(":");inv.forEach(function(x){if(x.id==p[0])x.qty=Math.max(0,x.qty+Number(p[1]))});saveI();renderInv()}
+  if(d.ix){inv=inv.filter(function(x){return x.id!=d.ix});saveI();renderInv()}
+  if(d.pay!==undefined)pay(+d.pay);
+});
+var _r=render;
+render=function(){_r();renderInv();renderCus()};
+render();
+</script>
+</body>
+</html>
